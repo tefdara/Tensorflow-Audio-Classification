@@ -123,17 +123,26 @@ class Processor:
         return audio_files
     
     def classify_audio(self, model, classifier_metadata, embedding_model=None):
+        """
+        Classify audio files.
+        Args:
+            model (Model): The model to be used for classification.
+            classifier_metadata (MetaData): The metadata for the classifier.
+            embedding_model (Model or None): The model to be used for computing embeddings. If None, the audio data will be used.
+        Returns:
+            dict: The statistics for the audio files as a dictionary.
+        """
         stats = {}
         for audio in self.audio_files:
-            # create a new instance of the model
-            model = model.__class__(model.graph_path, model.input_layer, model.output_layer)
+            # create a new instance of the models
             embeddings = None
             if embedding_model is not None:
-                embedding_model = embedding_model.__class__(embedding_model.graph_path, embedding_model.input_layer, embedding_model.output_layer)
-                embeddings = embedding_model.compute(audio_file=audio)
+                extractor = embedding_model.__class__(embedding_model.graph_path, embedding_model.input_layer, embedding_model.output_layer)
+                embeddings = extractor.compute(audio_file=audio)
 
-            model.compute(audio_file=audio, embeddings=embeddings)
-            stat = model.evaluate(classifier_metadata.data)
+            classifier = model.__class__(model.graph_path, model.input_layer, model.output_layer)
+            classifier.compute(audio_file=audio, embeddings=embeddings)
+            stat = classifier.evaluate(classifier_metadata.data)
             file_name = os.path.basename(audio)
             stats[file_name] = stat
             for label in stat:
@@ -141,6 +150,13 @@ class Processor:
         return stats
     
     def export_data(self, stats, stats_folder, stats_parent):
+        """
+        Export the statistics to a JSON file.
+        Args:
+            stats (dict): The statistics as a dictionary.
+            stats_folder (str): The name of the folder in which the statistics will be stored.
+            stats_parent (str): The name of the parent in which the statistics will be stored.
+        """
         import subprocess
         folder_name = os.path.basename(os.path.dirname(self.audio_file_path))
         # store one the file names so that subprocess can open the directory in Finder
@@ -153,7 +169,9 @@ class Processor:
             entry_values = stats[file_name]
             hierarchy = {stats_folder: {stats_parent: entry_values}}
             
-            data_file = os.path.join(os.path.dirname(audio), file_name_without_ext+'_analysis.json')
+            if not os.path.exists(os.path.join(os.path.dirname(audio), 'analysis')):
+                os.makedirs(os.path.join(os.path.dirname(audio), 'analysis'))
+            data_file = os.path.join(os.path.dirname(audio), 'analysis', file_name_without_ext+'_analysis.json')
             
             # check to see if analysis file already exists
             if os.path.isfile(data_file):
@@ -180,8 +198,8 @@ def file_dialog():
     root = tk.Tk()
     root.withdraw()
     dialog = filedialog.askdirectory()
-    dialog.wait_for_closed()
-    return dialog.selected_path
+    # dialog.wait_for_closed()
+    return dialog
 
        
         

@@ -1,6 +1,5 @@
 import numpy as np
 import essentia.standard as es
-from essentia.standard import TensorflowPredict
 from essentia import Pool
 from common.base import Model
 from common.mel_spectrogram import MelSpectrogramOpenL3
@@ -36,19 +35,32 @@ class TensorflowFSDSINet(Model):
 
 
 class TensorflowVGGish (Model):
-    def __init__(self, graph_path, json_path, input_layer = "", output_layer = ""):
-        super().__init__(graph_path=graph_path, json_path=json_path, input_layer=input_layer, output_layer=output_layer)
+    def __init__(self, graph_path,input_layer = "", output_layer = ""):
+         super().__init__(graph_path, input_layer, output_layer)
     
-    def compute(self, audio_file):
-        
-        audio = self.audio.compute(audio_file)
+    def compute(self, audio_file=None, embeddings=None):
+        data = self.get_audio_or_embeddings(audio_file, embeddings)
         model = es.TensorflowPredictVGGish(
             graphFilename=str(self.graph_path),
-            inputs=[self.input_layer],
-            outputs=[self.output_layer]
+            input=self.input_layer,
+            output=self.output_layer
         )
-        return model(audio)
+        self.predictions = model(data)
+        return self.predictions
 
+class TensorflowtMusiCNN (Model):
+    def __init__(self, graph_path,input_layer = "", output_layer = ""):
+         super().__init__(graph_path, input_layer, output_layer)
+    
+    def compute(self, audio_file=None, embeddings=None):
+        data = self.get_audio_or_embeddings(audio_file, embeddings)
+        model = es.TensorflowPredictMusiCNN(
+            graphFilename=str(self.graph_path),
+            input=self.input_layer,
+            output=self.output_layer
+        )
+        self.predictions = model(data)
+        return self.predictions
 
 
 class OpenL3(Model):
@@ -63,7 +75,7 @@ class OpenL3(Model):
     
         self.mel_extractor = MelSpectrogramOpenL3(hop_time=self.hop_time, sr=self.audio.sr)
 
-        self.model = TensorflowPredict(
+        self.model = es.TensorflowPredict(
             graphFilename=str(self.graph_path),
             inputs=[self.input_layer],
             outputs=[self.output_layer],
@@ -108,4 +120,19 @@ class OpenL3(Model):
         batch = np.expand_dims(batch, 1)
         batch = es.TensorTranspose(permutation=self.permutation)(batch)
         return batch
+    
+
+class TensorflowEffnetDiscogs(Model):
+    def __init__(self, graph_path, input_layer = "", output_layer = ""):
+       super().__init__(graph_path, input_layer, output_layer)
+               
+    def compute(self, audio_file=None, embeddings=None):
+        data = self.get_audio_or_embeddings(audio_file, embeddings)
+        model = es.TensorflowPredictEffnetDiscogs(
+            graphFilename=str(self.graph_path),
+            input=self.input_layer,
+            output=self.output_layer
+        )
+        self.predictions = model(data)
+        return self.predictions
 
