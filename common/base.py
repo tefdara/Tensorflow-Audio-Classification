@@ -100,17 +100,22 @@ class Model:
         """
         stats = {}
         for label, probability in zip(metadata['classes'], self.predictions.mean(axis=0)):
-            stats[label] = f'{100 * probability:.1f}%'
+            # stats[label] = f'{100 * probability:.1f}%'
+            # stats[label] = f'{probability:.6f}'
+            stats[label] = float(round(probability, 6))
+            
         return stats
     
 class Processor:
     
     def __init__(self, audio_file_path):
         self.audio_file_path = audio_file_path
-        self.audio_files = self.create_list(self.audio_file_path)
+        self.audio_files = self.import_files(self.audio_file_path)
     
-    def create_list(self, path):
+    def import_files(self, path):
         audio_files = []
+        # expand path to absolute path
+        path = os.path.abspath(os.path.join(os.path.expanduser(path)))
         if(os.path.isdir(path)):
             for root, dirs, files in os.walk(path):
                 for file in files:
